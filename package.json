@@ -1,0 +1,71 @@
+{
+  "name": "chronostasis",
+  "version": "0.1.0",
+  "description": "Pause animation rendering on blur. SolidJS adapter.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./solid": {
+      "import": {
+        "types": "./dist/solid.d.ts",
+        "default": "./dist/solid.js"
+      },
+      "require": {
+        "types": "./dist/solid.d.cts",
+        "default": "./dist/solid.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "animation",
+    "performance",
+    "solidjs",
+    "blur",
+    "raf"
+  ],
+  "author": "mrksye",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrksye/chronostasis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mrksye/chronostasis/issues"
+  },
+  "homepage": "https://github.com/mrksye/chronostasis#readme",
+  "peerDependencies": {
+    "solid-js": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "solid-js": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "solid-js": "^1.9.12",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  }
+}
