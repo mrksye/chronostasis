@@ -1,7 +1,7 @@
 {
   "name": "chronostasis",
   "version": "0.1.0",
-  "description": "Pause animation rendering on blur. SolidJS adapter.",
+  "description": "Pause animation rendering on blur. SolidJS, React, Vue, and vanilla adapters.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -26,6 +26,56 @@
         "types": "./dist/solid.d.cts",
         "default": "./dist/solid.cjs"
       }
+    },
+    "./react": {
+      "import": {
+        "types": "./dist/react.d.ts",
+        "default": "./dist/react.js"
+      },
+      "require": {
+        "types": "./dist/react.d.cts",
+        "default": "./dist/react.cjs"
+      }
+    },
+    "./react-native": {
+      "import": {
+        "types": "./dist/react-native.d.ts",
+        "default": "./dist/react-native.js"
+      },
+      "require": {
+        "types": "./dist/react-native.d.cts",
+        "default": "./dist/react-native.cjs"
+      }
+    },
+    "./vue": {
+      "import": {
+        "types": "./dist/vue.d.ts",
+        "default": "./dist/vue.js"
+      },
+      "require": {
+        "types": "./dist/vue.d.cts",
+        "default": "./dist/vue.cjs"
+      }
+    },
+    "./svelte": {
+      "import": {
+        "types": "./dist/svelte.d.ts",
+        "default": "./dist/svelte.js"
+      },
+      "require": {
+        "types": "./dist/svelte.d.cts",
+        "default": "./dist/svelte.cjs"
+      }
+    },
+    "./native": {
+      "import": {
+        "types": "./dist/native.d.ts",
+        "default": "./dist/native.js"
+      },
+      "require": {
+        "types": "./dist/native.d.cts",
+        "default": "./dist/native.cjs"
+      }
     }
   },
   "files": [
@@ -42,6 +92,10 @@
     "animation",
     "performance",
     "solidjs",
+    "react",
+    "react-native",
+    "vue",
+    "svelte",
     "blur",
     "raf"
   ],
@@ -56,16 +110,32 @@
   },
   "homepage": "https://github.com/mrksye/chronostasis#readme",
   "peerDependencies": {
-    "solid-js": ">=1.0.0"
+    "solid-js": ">=1.0.0",
+    "react": ">=18.0.0",
+    "vue": ">=3.0.0",
+    "svelte": ">=4.0.0"
   },
   "peerDependenciesMeta": {
     "solid-js": {
       "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    },
+    "svelte": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@types/react": "^18.3.0",
+    "react": "^18.3.0",
     "solid-js": "^1.9.12",
+    "svelte": "^4.2.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vue": "^3.4.0"
   }
 }

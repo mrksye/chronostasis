@@ -8,7 +8,7 @@ This module provides a tiny shared-state primitive that lets you suspend the dyn
 
 - Zero dependencies
 - Framework-agnostic vanilla TypeScript core
-- SolidJS adapter included; bridge to React / Vue / vanilla DOM in a few lines
+- SolidJS, React, React Native, Vue, Svelte, and vanilla DOM adapters included
 - Lease-style acquire counter — multiple callers can hold chronostasis at the same time
 
 ## Why
@@ -31,7 +31,7 @@ pnpm add chronostasis
 yarn add chronostasis
 ```
 
-`solid-js` is an optional peer dependency — only required if you import the `chronostasis/solid` entry point.
+`solid-js`, `react`, `vue`, and `svelte` are optional peer dependencies — each is only required if you import the matching entry point (`chronostasis/solid`, `chronostasis/react`, `chronostasis/vue`, `chronostasis/svelte`). The `chronostasis/native` entry point has no peer dependency.
 
 ## Usage
 
@@ -102,20 +102,130 @@ function BlurredPicker() {
 
 Pairing `requestChronostasis()` with `onCleanup` makes the release structurally guaranteed — there is no "forgot to leave" trap.
 
-### Other frameworks
+### React
 
-To bridge to React / Vue / vanilla DOM, wrap `subscribeChronostasis` in your framework's external-store primitive:
+```tsx
+import { useEffect } from "react";
+import { requestChronostasis } from "chronostasis";
+import { useChronostasis, useChronostasisBodyClass } from "chronostasis/react";
 
-```ts
-// React example
-import { useSyncExternalStore } from "react";
-import { inChronostasis, subscribeChronostasis } from "chronostasis";
+// Toggle `body.chronostasis` whenever chronostasis is held.
+function App() {
+  useChronostasisBodyClass();
+  return <Routes />;
+}
 
-export const useChronostasis = () =>
-  useSyncExternalStore(subscribeChronostasis, inChronostasis, inChronostasis);
+// Pause a ticker reactively.
+function Clock() {
+  const held = useChronostasis();
+  useEffect(() => {
+    if (held) return;
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [held]);
+}
+
+// Hold chronostasis for the lifetime of a component.
+function BlurredPicker() {
+  useEffect(() => requestChronostasis(), []); // released automatically on unmount
+  return <div className="picker" />;
+}
 ```
 
-See `src/solid.ts` for a reference adapter.
+`useChronostasis` is backed by `useSyncExternalStore`, so it is concurrent-safe and SSR-consistent.
+
+### React Native
+
+```tsx
+import { useEffect, useState } from "react";
+import { Animated } from "react-native";
+import { requestChronostasis } from "chronostasis";
+import { useChronostasis } from "chronostasis/react-native";
+
+// Pause a ticker reactively.
+function Clock() {
+  const held = useChronostasis();
+  useEffect(() => {
+    if (held) return;
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [held]);
+}
+
+// Hold chronostasis for the lifetime of a component.
+function HeavyOverlay() {
+  useEffect(() => requestChronostasis(), []); // released automatically on unmount
+  return null;
+}
+```
+
+React Native has no DOM, so this entry deliberately omits `useChronostasisBodyClass` — gate your `Animated` / Reanimated loops (or `setInterval` tickers) on the boolean instead. It imports only from `react`, so it adds no extra peer dependency beyond React itself.
+
+### Vue
+
+```vue
+<script setup lang="ts">
+import { watch, onScopeDispose } from "vue";
+import { requestChronostasis } from "chronostasis";
+import { useChronostasis, useChronostasisBodyClass } from "chronostasis/vue";
+
+// Toggle `body.chronostasis` whenever chronostasis is held.
+useChronostasisBodyClass();
+
+// Pause a ticker reactively.
+const held = useChronostasis();
+watch(held, (isHeld) => {
+  if (isHeld) return;
+  const id = setInterval(tick, 1000);
+  onScopeDispose(() => clearInterval(id));
+});
+
+// Hold chronostasis for the lifetime of a component.
+onScopeDispose(requestChronostasis()); // released automatically on unmount
+</script>
+```
+
+`useChronostasis` returns a readonly `Ref<boolean>`. Both composables must be called inside an active effect scope (component `setup`).
+
+### Svelte
+
+```svelte
+<script lang="ts">
+  import { onDestroy } from "svelte";
+  import { requestChronostasis } from "chronostasis";
+  import { chronostasisStore, useChronostasisBodyClass } from "chronostasis/svelte";
+
+  // Toggle `body.chronostasis` whenever chronostasis is held.
+  useChronostasisBodyClass();
+
+  // Pause a ticker reactively — read the store with `$`.
+  $: if (!$chronostasisStore) {
+    const id = setInterval(tick, 1000);
+    onDestroy(() => clearInterval(id));
+  }
+
+  // Hold chronostasis for the lifetime of a component.
+  onDestroy(requestChronostasis()); // released automatically on destroy
+</script>
+```
+
+`chronostasisStore` is a readonly Svelte store — read it reactively with the `$` prefix. It is lazy: it only subscribes to the core while it has at least one active subscriber.
+
+### Vanilla DOM
+
+```ts
+import { chronostasisBodyClass, requestChronostasis } from "chronostasis";
+import { chronostasisBodyClass as bindBodyClass } from "chronostasis/native";
+
+// Toggle `body.chronostasis` in sync with the state. Returns a cleanup function.
+const stop = bindBodyClass();
+// ... later, when you tear down ...
+stop();
+```
+
+Unlike the framework adapters, nothing calls the returned cleanup for you — hold onto it and invoke it yourself.
+
+See `src/solid.ts` for a reference adapter if you need to bridge another framework.
 
 ## API
 
@@ -150,6 +260,50 @@ body.chronostasis .star {
   animation-play-state: paused;
 }
 ```
+
+### React (`chronostasis/react`)
+
+#### `useChronostasis(): boolean`
+
+Reads chronostasis state as a boolean, re-rendering on every transition. Backed by `useSyncExternalStore` (concurrent-safe, SSR-consistent).
+
+#### `useChronostasisBodyClass(className?: string): void`
+
+Toggles a class (default: `"chronostasis"`) on `document.body` whenever chronostasis state changes. The class is removed on unmount and whenever `className` changes.
+
+### React Native (`chronostasis/react-native`)
+
+#### `useChronostasis(): boolean`
+
+Reads chronostasis state as a boolean, re-rendering on every transition. Backed by `useSyncExternalStore`. No `useChronostasisBodyClass` is exported — React Native has no DOM.
+
+### Vue (`chronostasis/vue`)
+
+Both composables must be called inside an active effect scope (component `setup`).
+
+#### `useChronostasis(): Readonly<Ref<boolean>>`
+
+Reads chronostasis state as a readonly Vue ref. The subscription is torn down automatically when the surrounding scope disposes.
+
+#### `useChronostasisBodyClass(className?: string): void`
+
+Toggles a class (default: `"chronostasis"`) on `document.body` whenever chronostasis state changes. The class is removed when the surrounding scope disposes.
+
+### Svelte (`chronostasis/svelte`)
+
+#### `chronostasisStore: Readable<boolean>`
+
+Chronostasis state as a readonly Svelte store. Read it reactively with the `$` prefix. Lazy — it only subscribes to the core while it has at least one active subscriber.
+
+#### `useChronostasisBodyClass(className?: string): void`
+
+Toggles a class (default: `"chronostasis"`) on `document.body` whenever chronostasis state changes. Must be called during component initialization; the class is removed when the component is destroyed.
+
+### Vanilla DOM (`chronostasis/native`)
+
+#### `chronostasisBodyClass(className?: string): () => void`
+
+Toggles a class (default: `"chronostasis"`) on `document.body` in sync with chronostasis state, starting from the current state. Returns a cleanup function that unsubscribes and removes the class — call it yourself when you tear down.
 
 ## License
 

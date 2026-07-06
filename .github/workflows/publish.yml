@@ -1,0 +1,60 @@
+name: Publish to npm
+
+# Publishes to npm whenever package.json's version on `main` differs from the version
+# already on the registry. Bump the version and push — that's the whole release flow.
+#
+# Auth is npm Trusted Publishing (OIDC): no NPM_TOKEN secret is stored. This requires
+# a one-time setup on npmjs.com — register this repo + workflow as a Trusted Publisher
+# for the `chronostasis` package (Settings → Publishing access). Provenance is attached
+# automatically.
+
+on:
+  push:
+    branches: [main]
+
+# Least privilege. id-token: write is what lets npm mint the short-lived OIDC credential.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted Publishing (OIDC) needs npm >= 11.5.1, newer than what Node 22 ships.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Compare the local version against the published one. Skip the rest if unchanged,
+      # so re-pushing to main without a version bump is a no-op instead of a failed publish.
+      - name: Check for version change
+        id: check
+        run: |
+          name=$(node -p "require('./package.json').name")
+          local_version=$(node -p "require('./package.json').version")
+          published_version=$(npm view "$name" version 2>/dev/null || echo "none")
+          echo "local=$local_version published=$published_version"
+          if [ "$local_version" = "$published_version" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged ($local_version) — nothing to publish."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        if: steps.check.outputs.changed == 'true'
+        run: npm run build
+
+      - name: Publish
+        if: steps.check.outputs.changed == 'true'
+        run: npm publish
