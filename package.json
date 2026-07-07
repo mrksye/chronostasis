@@ -1,6 +1,6 @@
 {
   "name": "chronostasis",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pause animation rendering on blur. SolidJS, React, Vue, and vanilla adapters.",
   "type": "module",
   "main": "./dist/index.cjs",
